@@ -1,0 +1,15 @@
+{
+  "name": "drupal/views_conditional",
+  "description": "Allows conditional views output.",
+  "type": "drupal-module",
+  "license": "GPL-2.0+",
+  "authors": [
+    {
+      "name": "Rohit Joshi",
+    },
+    {
+      "name": "Rafael Schally",
+      "email": "rafael.schally@gmail.com"
+    }
+  ]
+}
