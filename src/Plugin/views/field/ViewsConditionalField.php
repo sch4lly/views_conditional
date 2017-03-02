@@ -52,6 +52,12 @@ class ViewsConditionalField extends FieldPluginBase {
     }
     $fields += $options;
 
+
+
+
+
+
+
     $form['if'] = array(
       '#type' => 'select',
       '#title' => $this->t('If this field...'),
@@ -87,6 +93,58 @@ class ViewsConditionalField extends FieldPluginBase {
       '#default_value' => $this->options['or'],
     );
 
+    $previous = $this->getPreviousFieldLabels();
+    $optgroup_arguments = (string) t('Arguments');
+    $optgroup_fields = (string) t('Fields');
+    foreach ($previous as $id => $label) {
+      $options[$optgroup_fields]["{{ $id }}"] = substr(strrchr($label, ":"), 2 );
+    }
+    // Add the field to the list of options.
+    $options[$optgroup_fields]["{{ {$this->options['id']} }}"] = substr(strrchr($this->adminLabel(), ":"), 2 );
+
+    foreach ($this->view->display_handler->getHandlers('argument') as $arg => $handler) {
+      $options[$optgroup_arguments]["{{ arguments.$arg }}"] = $this->t('@argument title', array('@argument' => $handler->adminLabel()));
+      $options[$optgroup_arguments]["{{ raw_arguments.$arg }}"] = $this->t('@argument input', array('@argument' => $handler->adminLabel()));
+    }
+
+    $this->documentSelfTokens($options[$optgroup_fields]);
+
+    // Default text.
+
+    $output = [];
+    $output[] = [
+      '#markup' => '<p>' . $this->t('You must add some additional fields to this display before using this field. These fields may be marked as <em>Exclude from display</em> if you prefer. Note that due to rendering order, you cannot use fields that come after this field; if you need a field not listed here, rearrange your fields.') . '</p>',
+    ];
+    // We have some options, so make a list.
+    if (!empty($options)) {
+      $output[] = [
+        '#markup' => '<p>' . $this->t("The following replacement tokens are available for this field. Note that due to rendering order, you cannot use fields that come after this field; if you need a field not listed here, rearrange your fields.") . '</p>',
+      ];
+      foreach (array_keys($options) as $type) {
+        if (!empty($options[$type])) {
+          $items = array();
+          foreach ($options[$type] as $key => $value) {
+            $items[] = $key . ' == ' . $value;
+          }
+          $item_list = array(
+            '#theme' => 'item_list',
+            '#items' => $items,
+          );
+          $output[] = $item_list;
+        }
+      }
+    }
+    // This construct uses 'hidden' and not markup because process doesn't
+    // run. It also has an extra div because the dependency wants to hide
+    // the parent in situations like this, so we need a second div to
+    // make this work.
+    $form['tokens'] = array(
+      '#type' => 'details',
+      '#title' => $this->t('Replacement patterns'),
+      '#value' => $output,
+    );
+
+
     $form['strip_tags'] = array(
       '#type' => 'checkbox',
       '#title' => $this->t('Strip html tags from the output'),
@@ -100,6 +158,8 @@ class ViewsConditionalField extends FieldPluginBase {
    * @{inheritdoc}
    */
   public function render(ResultRow $values) {
+
+
     $if = $this->options['if'];
     $condition = $this->options['condition'];
     $equalto = $this->options['equalto'];
@@ -110,14 +170,16 @@ class ViewsConditionalField extends FieldPluginBase {
     $fields = $this->view->display_handler->getHandlers('field');
     $r = isset($fields["$if"]->last_render) ? trim(strip_tags($fields["$if"]->last_render, '<img>')) : NULL;
 
+    $tokens = $this->getRenderTokens([]);
+
     switch ($condition) {
       // Equal to.
       case 1:
         if ($r == $equalto) {
-          return $then;
+          return $this->viewsTokenReplace($then, $tokens);
         }
         else {
-          return $or;
+          return $or.'or';
         }
         break;
     }
