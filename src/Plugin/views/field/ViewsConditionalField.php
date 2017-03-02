@@ -179,7 +179,7 @@ class ViewsConditionalField extends FieldPluginBase {
           return $this->viewsTokenReplace($then, $tokens);
         }
         else {
-          return $or.'or';
+          return $this->viewsTokenReplace($or, $tokens);
         }
         break;
     }
